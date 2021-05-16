@@ -3,6 +3,7 @@ Script made to prevent and freeze Android Memory Daemons from killing apps.
 
 The script gives an app immunity against oomd and disables lmkd.
 Only works with root.
+Note: There is a chance ART (Android Runtime) might panic and freeze while using this.
 
 ## How to use
 Just give the script executable permission and run it as root.
