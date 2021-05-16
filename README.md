@@ -1,5 +1,5 @@
-# amdk
-Script made to prevent Android Memory Daemons from killing apps.
+# amdk (Android Memory Daemon Kryo)
+Script made to prevent and freeze Android Memory Daemons from killing apps.
 
 The script gives an app immunity against oomd and disables lmkd.
 Only works with root.
