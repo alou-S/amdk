@@ -123,6 +123,6 @@ do
 
 # Editing sleep time may cause problems
 # Too high values may give lmkd enough time to kill apps (Since lmkd is sent to sleep the cycle after waking it up)
-# Setting the value to 0.1 sometimes causes ART to panic after a while. (On the python script maybe not on bash since bash slower)
+# Setting the value to 0.1 sometimes causes ART to panic after a while.
 	sleep 0.2
 done
