@@ -1,7 +1,7 @@
 #!/system/bin/sh
 
 # Enter all apps for OOMD immunity into the array below
-APP=("com.termux" "com.zerotier.one")
+APP=("com.termux" "com.zerotier.one" "com.supercell.brawlstars")
 clear
 
 if [ $(id -u) != 0 ]
@@ -11,32 +11,25 @@ then
 fi
 
 # All variables will be initialized below
-x=0; y=0; z=0
+x=0
 
-while [[ ${APP[$x]} != "" ]]
-do
-  PID[$y]=$(pidof ${APP[$x]})
-  if [[ ${PID[$y]} == "" ]]
-  then
-    echo "- " ${APP[$x]}
-    z=1
-  else
-    APP_R[$y]=${APP[$x]}
-    y=$(($y+1))
-  fi
-  x=$(($x+1))
-done
+check(){
+  while [[ ${APP[$x]} != "" ]]
+  do
+    temppid=$(pidof ${APP[$x]})
 
-if [[ $z == 1 ]]
-then
-  echo
-  echo "The above apps are not detected thus will not gain OOMD immunity."
-  echo "Start the app and restart the script if needed."
-  echo
-  echo "You may edit the APP array in the 4th line of script to add/remove apps."
-  echo "Press any key to continue."
-  read -n 1 -s -r
-fi
+    if [[ $temppid == "" ]]
+    then
+      PID[$x]="NULL"
+      reprint=1
+    elif [[ ${PID[$x]} != $temppid ]]
+    then
+      PID[$x]=$temppid
+      reprint=1
+    fi
+    x=$((x+1))
+  done
+}
 
 stty -echo
 clear
@@ -44,7 +37,7 @@ clear
 LMKD=$(pidof -s lmkd)
 
 time1=0; time2=0
-x=0; y=0; z=0
+x=0
 
 MINFREE=$(cat /sys/module/lowmemorykiller/parameters/minfree)
 ADJ=$(cat /sys/module/lowmemorykiller/parameters/adj)
@@ -59,25 +52,33 @@ cleanup(){
   stty echo
 }
 trap cleanup EXIT
-kill -STOP $LMKD
 
 # Function for simply printing the status of the script. (Mostly useless)
 status(){
-  if [[ $FIRSTRUN != 1 ]]
+  if [[ $reprint == 1 ]]
   then
+    clear
     echo "Android Memory Daemon Kryo"
     echo "https://github.com/alou-S/amdk"
     echo
+    echo "To either add or remove apps edit the \"APP\" array in the 4th line of script."
+    echo "If any apps are not in this list, they were not detected."
+    echo
     echo "OOMD immunity is active for the following apps:"
-    z=0
-    while [[ ${APP_R[$z]} != "" ]]
+    x=0
+    while [[ ${APP[$x]} != "" ]]
     do
-      echo "- " ${APP_R[$z]}
-    z=$(($z+1))
+      if [[ ${PID[$x]} != "NULL" ]]
+      then
+        echo ${APP[$x]}
+
+      fi
+      x=$(($x+1))
     done
+
     echo
     printf ${PSTRING[$((RANDOM % 7))]}
-    FIRSTRUN=1
+    reprint=0
   else
     printf "\r${PSTRING[$((RANDOM % 7))]}"
   fi
@@ -107,6 +108,7 @@ do
 	then
 		time1=$time0
     x=0
+    check
 # Loop to set the oom_adj for all the apps
     while [[ ${PID[$x]} != "" ]]
     do
@@ -116,7 +118,6 @@ do
 
 		echo 9999 > /sys/module/lowmemorykiller/parameters/adj
 		echo 1 > /sys/module/lowmemorykiller/parameters/minfree
-# Absolutely useless status printing.
 
     status
 	fi
@@ -124,5 +125,5 @@ do
 # Editing sleep time may cause problems
 # Too high values may give lmkd enough time to kill apps (Since lmkd is sent to sleep the cycle after waking it up)
 # Setting the value to 0.1 sometimes causes ART to panic after a while.
-	sleep 0.2
+	sleep 0.15
 done
