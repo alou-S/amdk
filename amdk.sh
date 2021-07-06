@@ -2,7 +2,6 @@
 
 # Enter all apps for OOMD immunity into the array below
 APP=("com.termux" "com.zerotier.one" "com.supercell.brawlstars")
-clear
 
 if [ $(id -u) != 0 ]
 then
@@ -10,14 +9,25 @@ then
   exit
 fi
 
+stty -echo
+clear
+
 # All variables will be initialized below
 x=0
+time1=0; time2=0
+LMKD=$(pidof -s lmkd)
 
+MINFREE=$(cat /sys/module/lowmemorykiller/parameters/minfree)
+ADJ=$(cat /sys/module/lowmemorykiller/parameters/adj)
+PSTRING=("[.-.]" "[-.-]" "[^_^]" "[^-^]" "[-_-]" \
+  "[._.]" "[,-,]" "['.']" "['-']" "['_']") #10
+
+# Gets PID's of all apps.
 check(){
+  x=0
   while [[ ${APP[$x]} != "" ]]
   do
     temppid=$(pidof ${APP[$x]})
-
     if [[ $temppid == "" ]]
     then
       PID[$x]="NULL"
@@ -31,19 +41,6 @@ check(){
   done
 }
 
-stty -echo
-clear
-
-LMKD=$(pidof -s lmkd)
-
-time1=0; time2=0
-x=0
-
-MINFREE=$(cat /sys/module/lowmemorykiller/parameters/minfree)
-ADJ=$(cat /sys/module/lowmemorykiller/parameters/adj)
-PSTRING=("[.-.]" "[-.-]" "[^_^]" "[^-^]" "[-_-]" \
-  "[._.]" "[,-,]" "['.']" "['-']" "['_']") #10
-
 # Resumes lmkd and sets back minfree and adj values to normal when exiting.
 cleanup(){
   kill -CONT $LMKD
@@ -53,7 +50,7 @@ cleanup(){
 }
 trap cleanup EXIT
 
-# Function for simply printing the status of the script. (Mostly useless)
+# Function for simply printing the status of the script.
 status(){
   if [[ $reprint == 1 ]]
   then
@@ -70,12 +67,10 @@ status(){
     do
       if [[ ${PID[$x]} != "NULL" ]]
       then
-        echo ${APP[$x]}
-
+        echo ${APP[$x]}" (${PID[$x]})"
       fi
       x=$(($x+1))
     done
-
     echo
     printf ${PSTRING[$((RANDOM % 7))]}
     reprint=0
@@ -86,44 +81,41 @@ status(){
 
 while true
 do
-	time0=$(date +%s)
+  time0=$(date +%s)
 
-# To suspend LMKD immediately after resuming it.
-	if [[ $y == 1 ]]
-	then
-		kill -STOP $LMKD
-		y=0
-	fi
-# Resumes lmkd every 5 seconds so that ART doesn't panik.
-  if [[ $(($time0 % 5)) == 0 ]] && [[ $time0 != $time2 ]]
-	then
-		time2=$time0
+# Resume and suspend lmkd every 5 seconds so ART doesn't crash.
+  if [[ $(($time0 % 5)) == 0 ]] && [[ $time0 != time2 ]]
+  then
+    kill -CONT $LMKD
+    # Editing sleep time may cause problems
+    # Too high values may lmkd enough time to kill immune apps.
+    # Setting the value to 0.1 sometimes causes ART to panic after a while.
+    sleep 0.2
+    kill -STOP $LMKD
+  fi
 
-		kill -CONT $LMKD
-		y=1
-	fi
-
-# Reset oom and lmkd values every second
-	if [[ $time1 != $time0 ]]
-	then
-		time1=$time0
-    x=0
+# Check PID's and Reset oom and lmkd values every second
+  if [[ $time1 != $time0 ]]
+  then
+    time1=$time0
     check
+
 # Loop to set the oom_adj for all the apps
+    x=0
     while [[ ${PID[$x]} != "" ]]
     do
-      echo -17 > /proc/${PID[x]}/oom_adj
+      if [[ ${PID[$x]} != "NULL" ]]
+      then
+        echo -17 > /proc/${PID[x]}/oom_adj
+      fi
       x=$(($x+1))
     done
 
-		echo 9999 > /sys/module/lowmemorykiller/parameters/adj
-		echo 1 > /sys/module/lowmemorykiller/parameters/minfree
+    echo 9999 > /sys/module/lowmemorykiller/parameters/adj
+    echo 1 > /sys/module/lowmemorykiller/parameters/minfree
 
     status
-	fi
+  fi
 
-# Editing sleep time may cause problems
-# Too high values may give lmkd enough time to kill apps (Since lmkd is sent to sleep the cycle after waking it up)
-# Setting the value to 0.1 sometimes causes ART to panic after a while.
-	sleep 0.15
+  sleep 0.2
 done
