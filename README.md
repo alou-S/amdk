@@ -16,7 +16,7 @@ You can edit the script and add or remove apps from the array in the 4th line. <
 This script ONLY prevents the Android Low Memory Killer and Out Of Memory daemons from killing your app.
 
 This **WONT** prevent a vendor implemented memory daemon from killing the app. </br>
-This **WONT** prevent a vernder implemented battery optimization services from killing the app. </br>
+This **WONT** prevent vendor implemented battery optimization services from killing the app. </br>
 Check https://dontkillmyapp.com/ for vendor related solutions.
 
 
